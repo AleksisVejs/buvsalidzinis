@@ -74,7 +74,24 @@
         </div>
       </div>
 
-      <div class="mt-3 flex justify-end">
+      <!-- Store Selection Checkboxes -->
+      <div class="mt-4 space-y-2">
+        <label class="block text-xs font-medium text-zinc-400 mb-1.5">Search in stores:</label>
+        <div class="flex flex-wrap gap-x-4 gap-y-2">
+          <div v-for="store in availableStores" :key="store.name" class="flex items-center">
+            <input
+              :id="'store-' + store.name"
+              type="checkbox"
+              v-model="store.selected"
+              class="h-4 w-4 rounded border-zinc-600 bg-zinc-900/50 text-orange-500 focus:ring-orange-500/50 focus:ring-offset-zinc-900 cursor-pointer"
+            >
+            <label :for="'store-' + store.name" class="ml-2 text-sm text-zinc-300 cursor-pointer">{{ store.name }}</label>
+          </div>
+        </div>
+      </div>
+      <!-- End Store Selection -->
+
+      <div class="mt-4 flex justify-end">
         <button 
           type="submit"
           :disabled="disabled || !searchTerm.trim()"
@@ -103,6 +120,13 @@ import { ref, computed, onMounted, onUnmounted } from 'vue';
 
 const MAX_RECENT_SEARCHES = 5;
 const RECENT_SEARCHES_KEY = 'buvsalidzinis_recent_searches';
+
+// Define available stores
+const availableStores = ref([
+  { name: 'Depo', selected: true },
+  { name: 'Ksenukai', selected: true },
+  // Add more stores here in the future
+]);
 
 const props = defineProps({
   disabled: Boolean
@@ -164,13 +188,32 @@ const selectRecentSearch = (term) => {
 const clearSearch = () => {
   searchTerm.value = '';
   showSuggestions.value = false;
+  // Reset store selection if needed, or keep user's preference
+  // availableStores.value.forEach(store => store.selected = true); 
 };
 
 const submitSearch = () => {
   const term = searchTerm.value.trim();
+  const selectedStoreNames = availableStores.value
+    .filter(store => store.selected)
+    .map(store => store.name);
+
+  // Basic validation: Ensure a term is entered and at least one store is selected
+  if (!term) {
+    console.warn("Search term is empty.");
+    // Optionally: Add user feedback (e.g., focus input, show message)
+    return;
+  }
+  if (selectedStoreNames.length === 0) {
+    console.warn("No stores selected for search.");
+    // Optionally: Add user feedback
+    return;
+  }
+
   if (term) {
     addToRecentSearches(term);
-    emit('search', term);
+    // Emit an object with searchTerm and selected stores
+    emit('search', { searchTerm: term, stores: selectedStoreNames }); 
     showSuggestions.value = false;
   }
 };

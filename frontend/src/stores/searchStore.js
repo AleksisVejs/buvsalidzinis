@@ -21,7 +21,7 @@ export const useSearchStore = defineStore('search', () => {
   const isCompleted = computed(() => status.value === 'completed');
 
   // Actions
-  async function initiateSearch(productName) {
+  async function initiateSearch(productName, stores = []) {
     if (isLoading.value) return; // Prevent concurrent searches
 
     // Reset state
@@ -34,7 +34,7 @@ export const useSearchStore = defineStore('search', () => {
     stopPolling(); // Clear any previous polling
 
     try {
-      const data = await startSearch(productName);
+      const data = await startSearch(productName, stores);
       searchId.value = data.searchId;
       status.value = 'polling';
       pollStartTime = Date.now();

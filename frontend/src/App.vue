@@ -15,11 +15,18 @@ const searchResults = computed(() => store.results);
 
 let pollInterval = null;
 
-const performSearch = async (term) => {
-  if (pollInterval) {
-    clearInterval(pollInterval); // Clear previous interval if any
+const performSearch = async (searchPayload) => {
+  const { searchTerm, stores } = searchPayload;
+
+  if (!searchTerm || !stores || stores.length === 0) {
+    console.warn('Search term or selected stores missing in performSearch.');
+    return;
   }
-  await store.initiateSearch(term);
+
+  if (pollInterval) {
+    clearInterval(pollInterval);
+  }
+  await store.initiateSearch(searchTerm, stores);
 };
 
 // Watch for changes in searchId to start polling

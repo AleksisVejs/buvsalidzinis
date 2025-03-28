@@ -27,7 +27,7 @@ function normalizeName(name) {
  * Groups products based on a normalized name matching strategy.
  * @param {Array<object>} allResults Flat array of product objects from all scrapers.
  * @returns {Array<object>} Array of grouped products.
- *          Each group: { groupId: string, representativeName: string, offers: Array<object> }
+ *          Each group: { groupId: string, name: string, image: string, offers: Array<object> }
  */
 function groupProducts(allResults) {
   if (!allResults || allResults.length === 0) {
@@ -54,7 +54,8 @@ function groupProducts(allResults) {
       // Create a new group
       const newGroup = {
         groupId: uuidv4(),
-        representativeName: product.name, // Use the first product's original name as representative
+        name: product.name, // Use the first product's original name (RENAMED from representativeName)
+        image: product.image || null, // Use the first product's image as representative
         normalizedName: normalized, // Store for potential future use
         offers: [product],
       };
@@ -64,14 +65,21 @@ function groupProducts(allResults) {
   });
 
   // Clean up: sort offers within groups by price (ascending)
+  // Also ensure the main group image is updated if the first offer changes after sorting
   groups.forEach(group => {
     group.offers.sort((a, b) => (a.price || Infinity) - (b.price || Infinity));
+    // Update representative image based on the (potentially new) first offer after sorting
+    if (group.offers.length > 0) {
+      group.image = group.offers[0].image || null;
+    } else {
+      group.image = null; // Handle case of empty offers array? Should not happen based on logic above.
+    }
     // Optional: Remove the temporary normalizedName field if not needed in output
-    // delete group.normalizedName; 
+    // delete group.normalizedName;
   });
 
   // Optional: Sort groups themselves (e.g., by number of offers, representative name)
-  groups.sort((a, b) => a.representativeName.localeCompare(b.representativeName));
+  groups.sort((a, b) => a.name.localeCompare(b.name)); // Use renamed 'name' field
 
   console.log(`Grouped ${allResults.length} products into ${groups.length} groups.`);
 

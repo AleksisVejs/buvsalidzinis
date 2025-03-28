@@ -116,16 +116,17 @@ async function scrapeDepo(productName) {
     const extractedProducts = await page.evaluate((baseUrl, imageBaseUrl) => {
       const products = [];
       
-      // Look for links containing product paths
-      const productLinks = document.querySelectorAll('a[href*="/product/"]');
+      // Look for product containers
+      const productContainers = document.querySelectorAll('div.flex.h-full.min-h-\\[340px\\]');
       
-      // Set to track URLs we've already processed
-      const processedUrls = new Set();
-      
-      productLinks.forEach(link => {
+      productContainers.forEach(container => {
         try {
+          // Get product link
+          const productLink = container.querySelector('a[href^="/product/"]');
+          if (!productLink) return;
+          
           // Get URL and normalize it
-          let url = link.getAttribute('href');
+          let url = productLink.getAttribute('href');
           if (!url) return;
           
           // Add base URL if needed
@@ -133,62 +134,60 @@ async function scrapeDepo(productName) {
             url = baseUrl + (url.startsWith('/') ? url : `/${url}`);
           }
           
-          // Skip if we've seen this URL already
-          if (processedUrls.has(url)) return;
-          processedUrls.add(url);
-          
-          // Find product information
-          const container = link.closest('div, article, tr, li');
-          if (!container) return;
-          
-          // Get product name - try the link text, title, or alt text
-          let name = link.textContent?.trim() || 
-                     link.getAttribute('title')?.trim() || 
-                     link.querySelector('img')?.getAttribute('alt')?.trim();
-                     
+          // Get product name from the product link text
+          const nameElement = container.querySelector('a.clickable.font-sans.text-xs.font-bold');
+          if (!nameElement) return;
+          let name = nameElement.getAttribute('title')?.trim() || nameElement.textContent?.trim();
           if (!name) return;
           
-          // Try to find price
-          let price = null;
+          // Remove any "Thumbnail of" text
+          name = name.replace(/^Thumbnail of\s*/i, '').trim();
           
-          // Method 1: Look for EUR symbol and numbers
-          const priceMatch = container.textContent.match(/(\d+[,.]\d+)\s*€/);
-          if (priceMatch) {
-            price = parseFloat(priceMatch[1].replace(',', '.'));
+          // Get price from the yellow background element
+          let price = null;
+          const priceElement = container.querySelector('div[class*="bg-yellow-100"] .font-extrabold');
+          if (priceElement) {
+            const priceText = priceElement.textContent.trim();
+            const match = priceText.match(/(\d+[,.]\d+)/);
+            if (match) {
+              price = parseFloat(match[1].replace(',', '.'));
+            }
           }
           
-          // Method 2: Look for elements that might contain the price
-          if (!price) {
-            const possiblePriceElements = container.querySelectorAll('.price, [class*="price"], [class*="cost"], [class*="value"]');
-            for (const el of possiblePriceElements) {
-              const text = el.textContent.trim();
-              const match = text.match(/(\d+[,.]\d+)/);
-              if (match) {
-                price = parseFloat(match[1].replace(',', '.'));
-                break;
+          // Get image URL
+          let imageUrl = null;
+          const img = container.querySelector('img[src*="images.depo.lv"]');
+          if (img) {
+            imageUrl = img.getAttribute('src');
+            // Ensure the URL is absolute and properly formatted
+            if (imageUrl) {
+              if (imageUrl.startsWith('//')) {
+                imageUrl = `https:${imageUrl}`;
+              } else if (!imageUrl.startsWith('http')) {
+                // Handle relative URLs with the proper path structure
+                const cleanPath = imageUrl.startsWith('/') ? imageUrl.slice(1) : imageUrl;
+                imageUrl = `${IMAGE_BASE_URL}/${cleanPath}`;
+              }
+              // Ensure the URL includes the proper path segments
+              if (!imageUrl.includes('/i/fs/')) {
+                const parts = imageUrl.split('/');
+                const fileName = parts[parts.length - 1];
+                imageUrl = `${IMAGE_BASE_URL}/i/fs/100/200x200/m/${fileName}`;
               }
             }
           }
           
-          // Look for an image
-          let imageUrl = null;
-          const img = container.querySelector('img');
-          if (img && img.src) {
-            imageUrl = img.src;
-            if (!imageUrl.startsWith('http')) {
-              imageUrl = imageBaseUrl + (imageUrl.startsWith('/') ? imageUrl : `/${imageUrl}`);
-            }
-          }
-          
           // Add to results if we have essential info
-          products.push({
-            store: 'Depo',
-            name,
-            price, // May be null
-            currency: 'EUR',
-            url,
-            imageUrl,
-          });
+          if (name && url) {  // Only require name and url as mandatory fields
+            products.push({
+              storeName: 'Depo',
+              name,
+              price,
+              currency: 'EUR',
+              url,
+              imageUrl,
+            });
+          }
         } catch (error) {
           // Silently skip errors for individual products
         }

@@ -31,7 +31,8 @@ setInterval(() => {
 // POST /api/search
 // Starts a new product search
 router.post('/search', (req, res) => {
-  const { productName } = req.body;
+  // Extract productName and optional stores array
+  const { productName, stores } = req.body; 
 
   if (!productName) {
     return res.status(400).json({ error: 'productName is required' });
@@ -46,24 +47,45 @@ router.post('/search', (req, res) => {
     productName // Store the product name for reference
   };
 
-  console.log(`Search started for "${productName}" with ID: ${searchId}`);
+  console.log(`Search started for "${productName}" with ID: ${searchId}. Stores: ${stores ? stores.join(', ') : 'All'}`);
 
   // --- Scraper Orchestration ---
-  const scrapers = [
+  // Define all available scrapers
+  const allScrapers = [
       { name: 'Depo', func: scrapeDepo },
       { name: 'Ksenukai', func: scrapeKsenukai },
       // TODO: Add other scraper functions here
   ];
 
-  // Start scrapers asynchronously (don't await the Promise.allSettled here)
-  Promise.allSettled(scrapers.map(scraper => scraper.func(productName)))
+  // Determine which scrapers to run based on the request
+  let scrapersToRun = allScrapers;
+  if (stores && Array.isArray(stores) && stores.length > 0) {
+    const requestedStoreNames = new Set(stores.map(s => String(s).trim())); // Normalize
+    scrapersToRun = allScrapers.filter(scraper => requestedStoreNames.has(scraper.name));
+    console.log(`Running scrapers for: ${scrapersToRun.map(s => s.name).join(', ')}`);
+  }
+  
+  // Handle case where requested stores don't match any available scrapers
+  if (scrapersToRun.length === 0) {
+      console.warn(`No matching scrapers found for requested stores: ${stores.join(', ')}. Completing search early.`);
+      searchResults[searchId].status = 'completed'; // Mark as completed with empty results
+      searchResults[searchId].results = [];
+      searchResults[searchId].errors = []; 
+      // No need to run Promise.allSettled
+      res.status(202).json({ searchId });
+      return; // Exit early
+  }
+
+  // Use the filtered list of scrapers to run
+  Promise.allSettled(scrapersToRun.map(scraper => scraper.func(productName)))
     .then(results => {
       const allProducts = [];
       let overallStatus = 'completed'; // Assume completion unless an error occurs
       const scraperErrors = [];
 
       results.forEach((result, index) => {
-        const scraperName = scrapers[index].name;
+        // Use scrapersToRun to get the correct name based on the index
+        const scraperName = scrapersToRun[index].name; 
         if (result.status === 'fulfilled') {
           console.log(`Scraper ${scraperName} succeeded with ${result.value.length} items.`);
           allProducts.push(...result.value);
@@ -192,4 +214,4 @@ router.get('/search/:searchId', (req, res) => {
   });
 });
 
-module.exports = router; 
+module.exports = router;

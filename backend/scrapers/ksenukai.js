@@ -77,7 +77,7 @@ async function scrapeKsenukai(productName) {
 
           if (name && price !== null && url) {
             results.push({
-              store: 'Ksenukai',
+              storeName: 'Ksenukai',
               name,
               price,
               currency: 'EUR',

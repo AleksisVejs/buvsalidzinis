@@ -11,13 +11,14 @@ const apiClient = axios.create({
 });
 
 /**
- * Starts a search by sending the product name to the backend.
+ * Starts a search by sending the product name and selected stores to the backend.
  * @param {string} productName The product name to search for.
+ * @param {string[]} stores An array of store names to search within.
  * @returns {Promise<{searchId: string}>} A promise that resolves with the search ID.
  */
-export const startSearch = async (productName) => {
+export const startSearch = async (productName, stores) => {
   try {
-    const response = await apiClient.post('/search', { productName });
+    const response = await apiClient.post('/search', { productName, stores });
     return response.data; // Should contain { searchId: string }
   } catch (error) {
     console.error('Error starting search:', error.response || error.message);
