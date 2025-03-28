@@ -1,0 +1,37 @@
+steps:
+# Install dependencies (needed for potential build steps, though simple copy is often fine)
+- name: 'gcr.io/cloud-builders/npm'
+  args: ['install']
+  dir: 'backend' # Specify the directory for the backend service
+
+# Build the container image
+- name: 'gcr.io/cloud-builders/docker'
+  args: [
+      'build', 
+      '-t', 'gcr.io/$PROJECT_ID/buvsalidzinis-backend:$COMMIT_SHA', # Standard image tagging
+      '-f', 'backend/Dockerfile', # Explicitly point to the Dockerfile in backend/
+      '.' # Build context is the root, so Dockerfile can COPY backend/ code
+    ]
+
+# Push the container image to Google Container Registry (or Artifact Registry)
+- name: 'gcr.io/cloud-builders/docker'
+  args: ['push', 'gcr.io/$PROJECT_ID/buvsalidzinis-backend:$COMMIT_SHA']
+
+# Deploy container image to Cloud Run
+- name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+  entrypoint: gcloud
+  args: [
+      'run', 'deploy', 'buvsalidzinis-backend', # Service name in Cloud Run
+      '--image', 'gcr.io/$PROJECT_ID/buvsalidzinis-backend:$COMMIT_SHA', 
+      '--region', 'europe-north1', # CHANGE TO YOUR PREFERRED REGION
+      '--platform', 'managed', 
+      '--port', '8080', # Port exposed in Dockerfile
+      '--allow-unauthenticated', # Allows public access - REMOVE if you want IAM control
+      '--quiet'
+    ]
+
+images:
+- 'gcr.io/$PROJECT_ID/buvsalidzinis-backend:$COMMIT_SHA'
+
+# Optional: Timeout for the build
+timeout: '1200s' 

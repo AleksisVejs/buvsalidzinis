@@ -1,0 +1,31 @@
+{
+  "name": "buvsalidzinis-backend",
+  "version": "1.0.0",
+  "description": "Backend for Buvsalidzinis price comparison website",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js"
+  },
+  "keywords": [
+    "price comparison",
+    "latvia",
+    "scraper"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@headlessui/vue": "^1.7.23",
+    "@heroicons/vue": "^2.2.0",
+    "autoprefixer": "^10.4.21",
+    "axios": "^1.8.4",
+    "cheerio": "^1.0.0-rc.12",
+    "cors": "^2.8.5",
+    "express": "^4.19.2",
+    "pinia": "^3.0.1",
+    "postcss": "^8.5.3",
+    "puppeteer": "^22.10.0",
+    "tailwindcss": "^4.0.17",
+    "uuid": "^9.0.1"
+  }
+}
