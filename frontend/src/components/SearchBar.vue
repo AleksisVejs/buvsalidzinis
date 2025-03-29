@@ -18,6 +18,7 @@
           :disabled="disabled"
           @input="debouncedHandleInput"
           @focus="showSuggestions = true"
+          @keyup.enter="submitSearch"
           required
         />
         
@@ -36,7 +37,7 @@
         <!-- Recent Searches Dropdown -->
         <div 
           v-if="showSuggestions && recentSearches.length > 0" 
-          class="absolute z-10 w-full bottom-full mb-1 bg-zinc-800/90 border border-zinc-700/30 rounded-lg shadow-xl"
+          class="absolute z-50 w-full top-full mt-1 bg-zinc-800/90 border border-zinc-700/30 rounded-lg shadow-xl"
         >
           <div class="p-2 border-b border-zinc-700/20 flex justify-between items-center">
             <span class="text-sm font-medium text-zinc-400">Recent Searches</span>
